@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Wallet, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import UpiPaymentSimulator from './UpiPaymentSimulator';
 
 interface WalletRechargeProps {
   onClose: () => void;
@@ -14,17 +14,17 @@ interface WalletRechargeProps {
 const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
   const { user, updateWalletBalance } = useAuth();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [processing, setProcessing] = useState(false);
+  const [showUpiPayment, setShowUpiPayment] = useState(false);
 
   const rechargeAmounts = [100, 250, 500, 1000, 2000, 5000];
 
-  const handleRecharge = async () => {
+  const handleRecharge = () => {
     if (!selectedAmount) return;
+    setShowUpiPayment(true);
+  };
 
-    setProcessing(true);
-    
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  const handleUpiSuccess = () => {
+    if (!selectedAmount) return;
     
     updateWalletBalance(selectedAmount);
     
@@ -36,7 +36,8 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString(),
       status: 'Completed',
-      description: 'Wallet Recharge'
+      description: 'Wallet Recharge via UPI',
+      paymentMethod: 'UPI'
     };
     
     const existingTransactions = JSON.parse(localStorage.getItem('smartpulse_transactions') || '[]');
@@ -45,24 +46,20 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
     
     toast({
       title: "Wallet Recharged!",
-      description: `₹${selectedAmount} has been added to your wallet.`,
+      description: `₹${selectedAmount} has been added to your wallet via UPI.`,
     });
     
-    setProcessing(false);
+    setShowUpiPayment(false);
     onClose();
   };
 
-  if (processing) {
+  if (showUpiPayment && selectedAmount) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <h3 className="text-lg font-semibold mb-2">Processing Recharge...</h3>
-            <p className="text-gray-600">Please wait while we process your payment</p>
-          </CardContent>
-        </Card>
-      </div>
+      <UpiPaymentSimulator
+        amount={selectedAmount}
+        onSuccess={handleUpiSuccess}
+        onCancel={() => setShowUpiPayment(false)}
+      />
     );
   }
 
