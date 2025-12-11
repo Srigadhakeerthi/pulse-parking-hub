@@ -1,13 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Wallet, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import { CheckCircle, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from '@/hooks/use-toast';
 import PinVerification from './PinVerification';
-import WalletRecharge from '../wallet/WalletRecharge';
+import UpiPaymentSimulator from '../wallet/UpiPaymentSimulator';
 
 interface PaymentModalProps {
   selectedSlot: any;
@@ -26,25 +23,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onPaymentSuccess,
   onCancel
 }) => {
-  const { user, updateWalletBalance } = useAuth();
-  const [paymentStep, setPaymentStep] = useState<'summary' | 'pin' | 'processing' | 'success' | 'insufficient'>('summary');
-  const [showRecharge, setShowRecharge] = useState(false);
+  const { user } = useAuth();
+  const [paymentStep, setPaymentStep] = useState<'summary' | 'pin' | 'upi' | 'processing' | 'success'>('summary');
 
   const totalAmount = selectedSlot.price * duration;
 
   const handlePaymentConfirm = () => {
-    if (!user || user.walletBalance < totalAmount) {
-      setPaymentStep('insufficient');
-      return;
-    }
     setPaymentStep('pin');
   };
 
   const handlePinVerified = () => {
+    setPaymentStep('upi');
+  };
+
+  const handleUpiSuccess = () => {
     setPaymentStep('processing');
-    
-    // Deduct amount from wallet
-    updateWalletBalance(-totalAmount);
     
     // Save payment transaction
     const transaction = {
@@ -58,7 +51,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       slotNumber: selectedSlot.number,
       location: selectedSlot.location,
       complex: selectedSlot.complex,
-      duration: duration
+      duration: duration,
+      paymentMethod: 'UPI'
     };
     
     const existingTransactions = JSON.parse(localStorage.getItem('smartpulse_transactions') || '[]');
@@ -70,12 +64,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       setTimeout(() => {
         onPaymentSuccess();
       }, 2000);
-    }, 2000);
+    }, 1500);
   };
-
-  if (showRecharge) {
-    return <WalletRecharge onClose={() => setShowRecharge(false)} />;
-  }
 
   if (paymentStep === 'pin') {
     return (
@@ -87,6 +77,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     );
   }
 
+  if (paymentStep === 'upi') {
+    return (
+      <UpiPaymentSimulator
+        amount={totalAmount}
+        onSuccess={handleUpiSuccess}
+        onCancel={() => setPaymentStep('summary')}
+      />
+    );
+  }
+
   if (paymentStep === 'processing') {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -94,7 +94,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           <CardContent className="p-8 text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold mb-2">Processing Payment...</h3>
-            <p className="text-gray-600">Please wait while we process your booking</p>
+            <p className="text-muted-foreground">Verifying your UPI transaction</p>
           </CardContent>
         </Card>
       </div>
@@ -108,32 +108,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           <CardContent className="p-8 text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2 text-green-600">Payment Successful!</h3>
-            <p className="text-gray-600">Your parking slot has been booked successfully</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (paymentStep === 'insufficient') {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-md mx-4 border-red-200">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2 text-red-600">Insufficient Balance</h3>
-            <p className="text-gray-600 mb-4">
-              You need ₹{totalAmount} but your wallet balance is ₹{user?.walletBalance}
-            </p>
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={() => setPaymentStep('summary')} className="flex-1">
-                Cancel
-              </Button>
-              <Button onClick={() => setShowRecharge(true)} className="flex-1 royal-gradient">
-                <Plus className="h-4 w-4 mr-2" />
-                Recharge Wallet
-              </Button>
-            </div>
+            <p className="text-muted-foreground">Your parking slot has been booked successfully</p>
           </CardContent>
         </Card>
       </div>
@@ -145,12 +120,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border-purple-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-purple-900">
-            <Wallet className="h-5 w-5" />
-            Wallet Payment
+            <QrCode className="h-5 w-5" />
+            UPI Payment
           </CardTitle>
-          <Badge variant="outline" className="w-fit bg-purple-100 text-purple-800 border-purple-300">
-            Wallet Balance: ₹{user?.walletBalance}
-          </Badge>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="bg-gradient-to-r from-purple-50 to-yellow-50 p-4 rounded-lg border border-purple-200">
@@ -178,7 +150,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
               <div className="flex justify-between font-semibold text-base border-t pt-2">
                 <span>Total Amount:</span>
-                <span>₹{totalAmount}</span>
+                <span className="text-purple-700">₹{totalAmount}</span>
               </div>
             </div>
           </div>
@@ -190,9 +162,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <Button 
               onClick={handlePaymentConfirm} 
               className="flex-1 royal-gradient hover:opacity-90"
-              disabled={!user || user.walletBalance < totalAmount}
             >
-              {user && user.walletBalance < totalAmount ? 'Insufficient Balance' : 'Pay from Wallet'}
+              <QrCode className="h-4 w-4 mr-2" />
+              Pay via UPI
             </Button>
           </div>
         </CardContent>
