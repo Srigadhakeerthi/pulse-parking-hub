@@ -3,7 +3,7 @@
 
 export const ADMIN_PAYMENT_CONFIG = {
   // Admin UPI ID where all payments will be received
-  upiId: "admin@paytm", // Change this to your real UPI ID (e.g., "yourname@paytm", "9876543210@ybl")
+  upiId: "7989378488@axl", // Your UPI ID
   
   // Display name shown on UPI payment screen
   merchantName: "ParkEase Parking",
