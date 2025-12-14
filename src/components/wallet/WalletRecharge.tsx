@@ -46,7 +46,7 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
     
     toast({
       title: "Wallet Recharged!",
-      description: `₹${selectedAmount} has been added to your wallet via UPI.`,
+      description: `₹${selectedAmount} has been added to your wallet after verification.`,
     });
     
     setShowUpiPayment(false);
@@ -59,6 +59,7 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
         amount={selectedAmount}
         onSuccess={handleUpiSuccess}
         onCancel={() => setShowUpiPayment(false)}
+        requireVerification={true} // Require UTR verification for wallet recharge
       />
     );
   }
@@ -93,6 +94,12 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
                 </Button>
               ))}
             </div>
+          </div>
+
+          <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+            <p className="text-xs text-yellow-800">
+              <strong>Note:</strong> After UPI payment, you'll need to enter the UTR/Reference number to verify your payment before the wallet is credited.
+            </p>
           </div>
 
           <div className="flex gap-4">
