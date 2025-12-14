@@ -59,7 +59,6 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
         amount={selectedAmount}
         onSuccess={handleUpiSuccess}
         onCancel={() => setShowUpiPayment(false)}
-        requireVerification={true} // Require UTR verification for wallet recharge
       />
     );
   }
@@ -98,7 +97,7 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
 
           <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
             <p className="text-xs text-yellow-800">
-              <strong>Note:</strong> After UPI payment, you'll need to enter the UTR/Reference number to verify your payment before the wallet is credited.
+              <strong>Note:</strong> After scanning and completing the UPI payment, click "I've Completed Payment" to verify and add funds to your wallet.
             </p>
           </div>
 

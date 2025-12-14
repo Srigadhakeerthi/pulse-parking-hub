@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { QrCode, Smartphone, CheckCircle, ArrowLeft, Loader2, Copy, ExternalLink, AlertCircle } from 'lucide-react';
+import { QrCode, Smartphone, CheckCircle, ArrowLeft, Loader2, Copy, ExternalLink } from 'lucide-react';
 import QRCode from 'qrcode';
 import { generateUpiPaymentUrl, ADMIN_PAYMENT_CONFIG } from '@/config/payment';
 import { toast } from '@/hooks/use-toast';
@@ -13,22 +11,18 @@ interface UpiPaymentSimulatorProps {
   amount: number;
   onSuccess: () => void;
   onCancel: () => void;
-  requireVerification?: boolean; // For wallet recharge, require UTR verification
 }
 
 const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
   amount,
   onSuccess,
-  onCancel,
-  requireVerification = false
+  onCancel
 }) => {
-  const [step, setStep] = useState<'qr' | 'verify' | 'processing' | 'success'>('qr');
+  const [step, setStep] = useState<'qr' | 'processing' | 'success'>('qr');
   const [countdown, setCountdown] = useState(300); // 5 minutes for real payment
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [transactionId] = useState(() => `TXN${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`);
   const [upiPaymentUrl, setUpiPaymentUrl] = useState<string>('');
-  const [utrNumber, setUtrNumber] = useState('');
-  const [utrError, setUtrError] = useState('');
 
   // Generate real UPI QR code on mount
   useEffect(() => {
@@ -52,10 +46,10 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
 
   // Countdown timer
   useEffect(() => {
-    if ((step === 'qr' || step === 'verify') && countdown > 0) {
+    if (step === 'qr' && countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (countdown === 0 && (step === 'qr' || step === 'verify')) {
+    } else if (countdown === 0 && step === 'qr') {
       toast({
         title: "Payment Timeout",
         description: "Please try again if payment wasn't completed.",
@@ -66,37 +60,14 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
   }, [countdown, step, onCancel]);
 
   const handlePaymentConfirm = () => {
-    if (requireVerification) {
-      setStep('verify');
-    } else {
-      processPayment();
-    }
-  };
-
-  const handleVerifyUTR = () => {
-    // Validate UTR number (12-digit number typically)
-    if (!utrNumber.trim()) {
-      setUtrError('Please enter the UTR/Reference number');
-      return;
-    }
-    
-    if (utrNumber.length < 10) {
-      setUtrError('UTR number should be at least 10 characters');
-      return;
-    }
-
-    setUtrError('');
-    processPayment();
-  };
-
-  const processPayment = () => {
     setStep('processing');
+    // Simulate payment verification with backend (in real app, this would check with payment gateway)
     setTimeout(() => {
       setStep('success');
       setTimeout(() => {
         onSuccess();
       }, 1500);
-    }, 2000);
+    }, 3000);
   };
 
   const copyUpiId = () => {
@@ -137,92 +108,6 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
             <h3 className="text-lg font-semibold mb-2 text-green-600">Payment Successful!</h3>
             <p className="text-muted-foreground">₹{amount} paid successfully via UPI</p>
             <p className="text-xs text-muted-foreground mt-2">Transaction ID: {transactionId}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (step === 'verify') {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <Card className="w-full max-w-md border-primary/20">
-          <CardHeader className="text-center bg-gradient-to-r from-primary/10 to-accent/10">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setStep('qr')}
-              className="absolute left-4 top-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-            <CardTitle className="text-foreground flex items-center justify-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Verify Payment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5 p-6">
-            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-yellow-800 mb-1">Payment Verification Required</p>
-                  <p className="text-yellow-700">
-                    Enter the UTR/Reference number from your UPI payment confirmation to verify your transaction.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">₹{amount}</p>
-              <p className="text-sm text-muted-foreground mt-1">Amount to verify</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="utr">UTR/Reference Number</Label>
-              <Input
-                id="utr"
-                placeholder="Enter 12-digit UTR number"
-                value={utrNumber}
-                onChange={(e) => {
-                  setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''));
-                  setUtrError('');
-                }}
-                className={utrError ? 'border-red-500' : ''}
-              />
-              {utrError && (
-                <p className="text-sm text-red-500">{utrError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                You can find UTR number in your UPI app's payment success message or bank SMS.
-              </p>
-            </div>
-
-            {/* Timer */}
-            <div className="text-center">
-              <span className={`text-sm font-medium ${countdown < 60 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                Time remaining: {formatTime(countdown)}
-              </span>
-            </div>
-
-            <div className="flex gap-3">
-              <Button 
-                variant="outline"
-                onClick={onCancel}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleVerifyUTR}
-                className="flex-1 royal-gradient hover:opacity-90"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Verify & Add
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -298,9 +183,6 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
                   <li>Scan this QR code or enter UPI ID</li>
                   <li>Verify amount: <strong className="text-foreground">₹{amount}</strong></li>
                   <li>Complete payment & click confirm below</li>
-                  {requireVerification && (
-                    <li><strong className="text-foreground">Note down UTR number</strong> from payment confirmation</li>
-                  )}
                 </ol>
               </div>
             </div>
