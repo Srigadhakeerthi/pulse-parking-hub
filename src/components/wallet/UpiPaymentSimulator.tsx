@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle, Smartphone, QrCode, Clock } from 'lucide-react';
+import { Loader2, CheckCircle, Smartphone, Clock } from 'lucide-react';
 import { generateQRCode } from '@/utils/qrCodeGenerator';
 import { ADMIN_PAYMENT_CONFIG, generateUpiPaymentUrl } from '@/config/payment';
 
@@ -16,10 +16,9 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
   onSuccess,
   onCancel,
 }) => {
-  const [step, setStep] = useState<'qr' | 'waiting' | 'processing' | 'success'>('qr');
-  const [countdown, setCountdown] = useState(300); // 5 minutes
+  const [step, setStep] = useState<'scanning' | 'processing' | 'success'>('scanning');
+  const [countdown, setCountdown] = useState(120); // 2 minutes timeout
   const [qrCodeData, setQrCodeData] = useState<string>('');
-  const [waitingTime, setWaitingTime] = useState(0);
 
   useEffect(() => {
     // Generate UPI payment URL and QR code
@@ -28,8 +27,9 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
     generateQRCode(upiUrl).then(setQrCodeData);
   }, [amount]);
 
+  // Countdown timer
   useEffect(() => {
-    if (step === 'qr' && countdown > 0) {
+    if (step === 'scanning' && countdown > 0) {
       const timer = setInterval(() => {
         setCountdown((prev) => prev - 1);
       }, 1000);
@@ -39,34 +39,24 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
     }
   }, [step, countdown, onCancel]);
 
-  // Simulate automatic payment detection when in waiting mode
+  // Auto-detect payment after QR is shown (simulates webhook callback)
+  // In real apps, this would be a webhook from payment gateway
   useEffect(() => {
-    if (step === 'waiting') {
-      const timer = setInterval(() => {
-        setWaitingTime((prev) => prev + 1);
-      }, 1000);
-
-      // Simulate payment detection after 2-3 seconds
-      const detectionTime = 2000 + Math.random() * 1000;
+    if (step === 'scanning' && qrCodeData) {
+      // Simulate payment detection after 8-12 seconds (gives time to scan & pay)
+      const detectionTime = 8000 + Math.random() * 4000;
       const detectionTimer = setTimeout(() => {
         setStep('processing');
-        // Process payment quickly
+        // Verify payment
         setTimeout(() => {
           setStep('success');
           setTimeout(onSuccess, 1000);
         }, 1500);
       }, detectionTime);
 
-      return () => {
-        clearInterval(timer);
-        clearTimeout(detectionTimer);
-      };
+      return () => clearTimeout(detectionTimer);
     }
-  }, [step, onSuccess]);
-
-  const handleScanStarted = () => {
-    setStep('waiting');
-  };
+  }, [step, qrCodeData, onSuccess]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -81,7 +71,7 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
           <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
           <h3 className="text-xl font-semibold mb-2">Verifying Payment</h3>
           <p className="text-muted-foreground">
-            Confirming your payment with your bank...
+            Confirming your payment...
           </p>
         </CardContent>
       </Card>
@@ -104,39 +94,6 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
     );
   }
 
-  if (step === 'waiting') {
-    return (
-      <Card className="w-full max-w-md mx-auto border-primary/20">
-        <CardContent className="p-8 text-center">
-          <div className="relative mb-6">
-            <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-              <Clock className="w-10 h-10 text-primary animate-pulse" />
-            </div>
-          </div>
-          <h3 className="text-xl font-semibold mb-2">Waiting for Payment</h3>
-          <p className="text-muted-foreground mb-4">
-            Complete the payment in your UPI app
-          </p>
-          <div className="bg-muted/50 rounded-lg p-4 mb-4">
-            <p className="text-sm text-muted-foreground">Amount to pay</p>
-            <p className="text-2xl font-bold text-primary">₹{amount}</p>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Waiting for {waitingTime}s...
-          </p>
-          <div className="flex justify-center gap-2 mb-4">
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-          <Button variant="outline" onClick={onCancel} className="w-full">
-            Cancel
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="w-full max-w-md mx-auto border-primary/20">
       <CardHeader className="text-center pb-2">
@@ -144,7 +101,7 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* QR Code Display */}
-        <div className="bg-white p-4 rounded-xl shadow-inner mx-auto w-fit">
+        <div className="bg-white p-4 rounded-xl shadow-inner mx-auto w-fit relative">
           {qrCodeData ? (
             <img
               src={qrCodeData}
@@ -156,6 +113,16 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           )}
+        </div>
+
+        {/* Waiting indicator */}
+        <div className="flex items-center justify-center gap-2">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span className="text-sm text-primary font-medium">Waiting for payment</span>
         </div>
 
         {/* UPI ID */}
@@ -181,26 +148,17 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
               <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1 mt-1">
                 <li>Open any UPI app (GPay, PhonePe, Paytm)</li>
                 <li>Scan this QR code</li>
-                <li>Confirm the amount and pay</li>
-                <li>Payment will be auto-detected</li>
+                <li>Confirm amount and complete payment</li>
+                <li>Payment auto-detects - no action needed</li>
               </ol>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-2">
-          <Button
-            className="w-full"
-            onClick={handleScanStarted}
-          >
-            <QrCode className="w-4 h-4 mr-2" />
-            I've Scanned the QR Code
-          </Button>
-          <Button variant="outline" onClick={onCancel} className="w-full">
-            Cancel
-          </Button>
-        </div>
+        {/* Cancel Button */}
+        <Button variant="outline" onClick={onCancel} className="w-full">
+          Cancel
+        </Button>
       </CardContent>
     </Card>
   );
