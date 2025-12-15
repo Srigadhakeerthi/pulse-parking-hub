@@ -46,15 +46,15 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
         setWaitingTime((prev) => prev + 1);
       }, 1000);
 
-      // Simulate payment detection after 5-8 seconds (random for realism)
-      const detectionTime = 5000 + Math.random() * 3000;
+      // Simulate payment detection after 2-3 seconds
+      const detectionTime = 2000 + Math.random() * 1000;
       const detectionTimer = setTimeout(() => {
         setStep('processing');
-        // Process payment
+        // Process payment quickly
         setTimeout(() => {
           setStep('success');
-          setTimeout(onSuccess, 1500);
-        }, 2000);
+          setTimeout(onSuccess, 1000);
+        }, 1500);
       }, detectionTime);
 
       return () => {
