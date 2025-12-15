@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle, Smartphone, Clock } from 'lucide-react';
+import { Loader2, CheckCircle, Smartphone, Clock, QrCode } from 'lucide-react';
 import { generateQRCode } from '@/utils/qrCodeGenerator';
 import { ADMIN_PAYMENT_CONFIG, generateUpiPaymentUrl } from '@/config/payment';
 
@@ -17,13 +17,15 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
   onCancel,
 }) => {
   const [step, setStep] = useState<'scanning' | 'processing' | 'success'>('scanning');
-  const [countdown, setCountdown] = useState(120); // 2 minutes timeout
+  const [countdown, setCountdown] = useState(300); // 5 minutes timeout
   const [qrCodeData, setQrCodeData] = useState<string>('');
+  const [transactionId, setTransactionId] = useState<string>('');
 
   useEffect(() => {
     // Generate UPI payment URL and QR code
-    const transactionId = `WR${Date.now()}`;
-    const upiUrl = generateUpiPaymentUrl(amount, transactionId);
+    const txnId = `WR${Date.now()}`;
+    setTransactionId(txnId);
+    const upiUrl = generateUpiPaymentUrl(amount, txnId);
     generateQRCode(upiUrl).then(setQrCodeData);
   }, [amount]);
 
@@ -39,30 +41,21 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
     }
   }, [step, countdown, onCancel]);
 
-  // Auto-detect payment after QR is shown (simulates webhook callback)
-  // In real apps, this would be a webhook from payment gateway
-  useEffect(() => {
-    if (step === 'scanning' && qrCodeData) {
-      // Simulate payment detection after 8-12 seconds (gives time to scan & pay)
-      const detectionTime = 8000 + Math.random() * 4000;
-      const detectionTimer = setTimeout(() => {
-        setStep('processing');
-        // Verify payment
-        setTimeout(() => {
-          setStep('success');
-          setTimeout(onSuccess, 1000);
-        }, 1500);
-      }, detectionTime);
-
-      return () => clearTimeout(detectionTimer);
-    }
-  }, [step, qrCodeData, onSuccess]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Handle payment confirmation - user clicks after paying
+  const handlePaymentDone = useCallback(() => {
+    setStep('processing');
+    // Quick verification simulation
+    setTimeout(() => {
+      setStep('success');
+      setTimeout(onSuccess, 800);
+    }, 1200);
+  }, [onSuccess]);
 
   if (step === 'processing') {
     return (
@@ -71,7 +64,7 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
           <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
           <h3 className="text-xl font-semibold mb-2">Verifying Payment</h3>
           <p className="text-muted-foreground">
-            Confirming your payment...
+            Confirming your payment to {ADMIN_PAYMENT_CONFIG.upiId}...
           </p>
         </CardContent>
       </Card>
@@ -97,11 +90,14 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
   return (
     <Card className="w-full max-w-md mx-auto border-primary/20">
       <CardHeader className="text-center pb-2">
-        <CardTitle className="text-lg">Scan & Pay ₹{amount}</CardTitle>
+        <CardTitle className="text-lg flex items-center justify-center gap-2">
+          <QrCode className="w-5 h-5" />
+          Pay ₹{amount}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* QR Code Display */}
-        <div className="bg-white p-4 rounded-xl shadow-inner mx-auto w-fit relative">
+        <div className="bg-white p-4 rounded-xl shadow-inner mx-auto w-fit">
           {qrCodeData ? (
             <img
               src={qrCodeData}
@@ -115,20 +111,10 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
           )}
         </div>
 
-        {/* Waiting indicator */}
-        <div className="flex items-center justify-center gap-2">
-          <div className="flex gap-1">
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-          <span className="text-sm text-primary font-medium">Waiting for payment</span>
-        </div>
-
         {/* UPI ID */}
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">UPI ID</p>
-          <p className="font-mono font-medium">{ADMIN_PAYMENT_CONFIG.upiId}</p>
+        <div className="text-center bg-muted/50 rounded-lg p-3">
+          <p className="text-xs text-muted-foreground">Pay to UPI ID</p>
+          <p className="font-mono font-bold text-lg">{ADMIN_PAYMENT_CONFIG.upiId}</p>
         </div>
 
         {/* Timer */}
@@ -140,23 +126,33 @@ const UpiPaymentSimulator: React.FC<UpiPaymentSimulatorProps> = ({
         </div>
 
         {/* Instructions */}
-        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+        <div className="bg-muted/30 rounded-lg p-4 space-y-2">
           <div className="flex items-start gap-3">
-            <Smartphone className="w-5 h-5 text-primary mt-0.5" />
+            <Smartphone className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
             <div>
-              <p className="font-medium text-sm">How to pay:</p>
+              <p className="font-medium text-sm">Steps:</p>
               <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1 mt-1">
-                <li>Open any UPI app (GPay, PhonePe, Paytm)</li>
+                <li>Open GPay/PhonePe/Paytm</li>
                 <li>Scan this QR code</li>
-                <li>Confirm amount and complete payment</li>
-                <li>Payment auto-detects - no action needed</li>
+                <li>Pay ₹{amount} to {ADMIN_PAYMENT_CONFIG.upiId}</li>
+                <li>After payment, tap button below</li>
               </ol>
             </div>
           </div>
         </div>
 
+        {/* Payment Done Button */}
+        <Button 
+          onClick={handlePaymentDone} 
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+          size="lg"
+        >
+          <CheckCircle className="w-5 h-5 mr-2" />
+          I've Paid ₹{amount}
+        </Button>
+
         {/* Cancel Button */}
-        <Button variant="outline" onClick={onCancel} className="w-full">
+        <Button variant="ghost" onClick={onCancel} className="w-full text-muted-foreground">
           Cancel
         </Button>
       </CardContent>
