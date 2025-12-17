@@ -80,7 +80,22 @@ const NearbyParking = () => {
         '_blank'
       );
     } else {
-      window.open(`https://www.google.com/maps/search/${encodeURIComponent(location.name + ' parking')}`, '_blank');
+      // Request location permission when clicking directions
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+          setLoading(false);
+          setLocationError(false);
+          window.open(
+            `https://www.google.com/maps/dir/${position.coords.latitude},${position.coords.longitude}/${location.lat},${location.lng}`,
+            '_blank'
+          );
+        },
+        () => {
+          // Fallback to destination only if permission denied
+          window.open(`https://www.google.com/maps/dir//${location.lat},${location.lng}`, '_blank');
+        }
+      );
     }
   };
 
