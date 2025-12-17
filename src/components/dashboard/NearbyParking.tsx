@@ -49,8 +49,23 @@ const NearbyParking = () => {
   ];
 
   const handleGetDirections = (location: any) => {
-    // In a real app, this would open maps with directions
-    window.open(`https://www.google.com/maps/search/${encodeURIComponent(location.name + ' parking')}`, '_blank');
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          window.open(
+            `https://www.google.com/maps/dir/${latitude},${longitude}/${encodeURIComponent(location.name + ' parking')}`,
+            '_blank'
+          );
+        },
+        (error) => {
+          // Fallback to search if location denied
+          window.open(`https://www.google.com/maps/search/${encodeURIComponent(location.name + ' parking')}`, '_blank');
+        }
+      );
+    } else {
+      window.open(`https://www.google.com/maps/search/${encodeURIComponent(location.name + ' parking')}`, '_blank');
+    }
   };
 
   return (
