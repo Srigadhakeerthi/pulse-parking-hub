@@ -74,27 +74,18 @@ const NearbyParking = () => {
   }, []);
 
   const handleGetDirections = (location: ParkingLocation) => {
+    // Open Maps immediately to avoid popup blocking
+    // Use Google Maps directions with destination, it will prompt user for starting point
     if (userLocation) {
       window.open(
         `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${location.lat},${location.lng}`,
         '_blank'
       );
     } else {
-      // Request location permission when clicking directions
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-          setLoading(false);
-          setLocationError(false);
-          window.open(
-            `https://www.google.com/maps/dir/${position.coords.latitude},${position.coords.longitude}/${location.lat},${location.lng}`,
-            '_blank'
-          );
-        },
-        () => {
-          // Fallback to destination only if permission denied
-          window.open(`https://www.google.com/maps/dir//${location.lat},${location.lng}`, '_blank');
-        }
+      // Open Maps with destination - Google will ask for user's location
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${location.lat},${location.lng}`,
+        '_blank'
       );
     }
   };
