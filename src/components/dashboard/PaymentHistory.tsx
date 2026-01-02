@@ -14,8 +14,12 @@ const PaymentHistory = () => {
   const [showRecharge, setShowRecharge] = useState(false);
 
   useEffect(() => {
-    const savedTransactions = JSON.parse(localStorage.getItem('smartpulse_transactions') || '[]');
-    const savedBookings = JSON.parse(localStorage.getItem('smartpulse_bookings') || '[]');
+    if (!user?.id) return;
+    
+    const userTransactionsKey = `smartpulse_transactions_${user.id}`;
+    const userBookingsKey = `smartpulse_bookings_${user.id}`;
+    const savedTransactions = JSON.parse(localStorage.getItem(userTransactionsKey) || '[]');
+    const savedBookings = JSON.parse(localStorage.getItem(userBookingsKey) || '[]');
     
     // Convert old bookings to transaction format
     const bookingTransactions = savedBookings.map((booking: any) => ({
@@ -43,7 +47,7 @@ const PaymentHistory = () => {
       transaction.type === 'payment' ? sum + Math.abs(transaction.amount) : sum, 0
     );
     setTotalSpent(spent);
-  }, [showRecharge]);
+  }, [showRecharge, user?.id]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {

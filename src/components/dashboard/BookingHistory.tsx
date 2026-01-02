@@ -14,9 +14,11 @@ const BookingHistory = () => {
   const [qrCodeData, setQrCodeData] = useState<string>('');
 
   useEffect(() => {
-    const savedBookings = JSON.parse(localStorage.getItem('smartpulse_bookings') || '[]');
+    if (!user?.id) return;
+    const userBookingsKey = `smartpulse_bookings_${user.id}`;
+    const savedBookings = JSON.parse(localStorage.getItem(userBookingsKey) || '[]');
     setBookings(savedBookings);
-  }, []);
+  }, [user?.id]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

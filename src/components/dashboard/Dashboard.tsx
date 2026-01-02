@@ -42,9 +42,13 @@ const Dashboard = () => {
 
   // Load data from localStorage
   useEffect(() => {
+    if (!user?.id) return;
+    
     const loadData = () => {
-      const savedBookings = JSON.parse(localStorage.getItem('smartpulse_bookings') || '[]');
-      const savedTransactions = JSON.parse(localStorage.getItem('smartpulse_transactions') || '[]');
+      const userBookingsKey = `smartpulse_bookings_${user.id}`;
+      const userTransactionsKey = `smartpulse_transactions_${user.id}`;
+      const savedBookings = JSON.parse(localStorage.getItem(userBookingsKey) || '[]');
+      const savedTransactions = JSON.parse(localStorage.getItem(userTransactionsKey) || '[]');
       setBookings(savedBookings);
       setTransactions(savedTransactions);
     };
@@ -61,7 +65,7 @@ const Dashboard = () => {
       window.removeEventListener('storage', loadData);
       clearInterval(interval);
     };
-  }, []);
+  }, [user?.id]);
 
   // Calculate dynamic stats
   const stats = useMemo(() => {

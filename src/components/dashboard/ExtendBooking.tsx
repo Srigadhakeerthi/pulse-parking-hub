@@ -7,14 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Car, CreditCard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const ExtendBooking = () => {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [extensionHours, setExtensionHours] = useState(1);
 
   React.useEffect(() => {
-    const savedBookings = JSON.parse(localStorage.getItem('smartpulse_bookings') || '[]');
+    if (!user?.id) return;
+    const userBookingsKey = `smartpulse_bookings_${user.id}`;
+    const savedBookings = JSON.parse(localStorage.getItem(userBookingsKey) || '[]');
     const activeBookings = savedBookings.filter((booking: any) => {
       const bookingDate = new Date(booking.date + ' ' + booking.time);
       const now = new Date();
@@ -22,18 +26,19 @@ const ExtendBooking = () => {
       return endTime > now;
     });
     setBookings(activeBookings);
-  }, []);
+  }, [user?.id]);
 
   const handleExtendBooking = () => {
-    if (!selectedBooking) return;
+    if (!selectedBooking || !user?.id) return;
 
-    const updatedBookings = JSON.parse(localStorage.getItem('smartpulse_bookings') || '[]');
+    const userBookingsKey = `smartpulse_bookings_${user.id}`;
+    const updatedBookings = JSON.parse(localStorage.getItem(userBookingsKey) || '[]');
     const bookingIndex = updatedBookings.findIndex((b: any) => b.id === selectedBooking.id);
     
     if (bookingIndex !== -1) {
       updatedBookings[bookingIndex].duration += extensionHours;
       updatedBookings[bookingIndex].amount += (selectedBooking.amount / selectedBooking.duration) * extensionHours;
-      localStorage.setItem('smartpulse_bookings', JSON.stringify(updatedBookings));
+      localStorage.setItem(userBookingsKey, JSON.stringify(updatedBookings));
       
       toast({
         title: "Booking Extended!",

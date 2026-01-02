@@ -134,9 +134,10 @@ const BookingPage = () => {
     setShowPayment(false);
     setShowConfirmation(true);
     
-    const existingBookings = JSON.parse(localStorage.getItem('smartpulse_bookings') || '[]');
+    const userBookingsKey = `smartpulse_bookings_${user?.id}`;
+    const existingBookings = JSON.parse(localStorage.getItem(userBookingsKey) || '[]');
     existingBookings.push(booking);
-    localStorage.setItem('smartpulse_bookings', JSON.stringify(existingBookings));
+    localStorage.setItem(userBookingsKey, JSON.stringify(existingBookings));
 
     toast({
       title: "Booking Confirmed!",
