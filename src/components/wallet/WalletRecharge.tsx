@@ -40,9 +40,10 @@ const WalletRecharge: React.FC<WalletRechargeProps> = ({ onClose }) => {
       paymentMethod: 'UPI'
     };
     
-    const existingTransactions = JSON.parse(localStorage.getItem('smartpulse_transactions') || '[]');
+    const userTransactionsKey = `smartpulse_transactions_${user?.id}`;
+    const existingTransactions = JSON.parse(localStorage.getItem(userTransactionsKey) || '[]');
     existingTransactions.push(transaction);
-    localStorage.setItem('smartpulse_transactions', JSON.stringify(existingTransactions));
+    localStorage.setItem(userTransactionsKey, JSON.stringify(existingTransactions));
     
     toast({
       title: "Wallet Recharged!",
