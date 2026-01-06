@@ -37,27 +37,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Mock authentication - replace with actual API call
       console.log('Login attempt:', { email, password });
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if user exists in localStorage
+      // Check if user exists in localStorage (registered users)
       const existingUsers = JSON.parse(localStorage.getItem('smartpulse_users') || '[]');
       const existingUser = existingUsers.find((u: any) => u.email === email);
       
-      const mockUser: User = existingUser || {
-        id: '1',
-        name: email === 'admin@smartpulse.com' ? 'Admin User' : 'John Doe',
+      if (existingUser) {
+        // User exists - load their saved data
+        setUser(existingUser);
+        localStorage.setItem('smartpulse_user', JSON.stringify(existingUser));
+        return true;
+      }
+      
+      // Create new user only if not found (for admin or first-time mock users)
+      const newUser: User = {
+        id: Date.now().toString(),
+        name: email === 'admin@smartpulse.com' ? 'Admin User' : email.split('@')[0],
         email,
         role: email === 'admin@smartpulse.com' ? 'admin' : 'user',
-        walletBalance: 1000,
+        walletBalance: 500,
         pin: '1234'
       };
       
-      setUser(mockUser);
-      localStorage.setItem('smartpulse_user', JSON.stringify(mockUser));
+      // Save new user to users array
+      existingUsers.push(newUser);
+      localStorage.setItem('smartpulse_users', JSON.stringify(existingUsers));
+      
+      setUser(newUser);
+      localStorage.setItem('smartpulse_user', JSON.stringify(newUser));
       return true;
     } catch (error) {
       console.error('Login error:', error);

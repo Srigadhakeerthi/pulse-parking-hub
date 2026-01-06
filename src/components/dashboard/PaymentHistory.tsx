@@ -17,35 +17,22 @@ const PaymentHistory = () => {
     if (!user?.id) return;
     
     const userTransactionsKey = `smartpulse_transactions_${user.id}`;
-    const userBookingsKey = `smartpulse_bookings_${user.id}`;
     const savedTransactions = JSON.parse(localStorage.getItem(userTransactionsKey) || '[]');
-    const savedBookings = JSON.parse(localStorage.getItem(userBookingsKey) || '[]');
     
-    // Convert old bookings to transaction format
-    const bookingTransactions = savedBookings.map((booking: any) => ({
-      id: booking.id,
-      type: 'payment',
-      amount: -booking.amount,
-      date: booking.date,
-      time: booking.time,
-      status: 'Completed',
-      description: `Parking Slot ${booking.slotNumber} - ${booking.location}`,
-      slotNumber: booking.slotNumber,
-      location: booking.location,
-      complex: booking.complex,
-      duration: booking.duration
-    }));
-    
-    const allTransactions = [...savedTransactions, ...bookingTransactions];
-    // Remove duplicates based on ID
-    const uniqueTransactions = allTransactions.filter((transaction, index, self) => 
-      index === self.findIndex(t => t.id === transaction.id)
+    // Sort transactions by date (newest first)
+    const sortedTransactions = savedTransactions.sort((a: any, b: any) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
     );
     
-    setTransactions(uniqueTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    const spent = uniqueTransactions.reduce((sum: number, transaction: any) => 
-      transaction.type === 'payment' ? sum + Math.abs(transaction.amount) : sum, 0
-    );
+    setTransactions(sortedTransactions);
+    
+    // Calculate total spent from payment transactions only
+    const spent = savedTransactions.reduce((sum: number, transaction: any) => {
+      if (transaction.type === 'payment') {
+        return sum + Math.abs(transaction.amount);
+      }
+      return sum;
+    }, 0);
     setTotalSpent(spent);
   }, [showRecharge, user?.id]);
 
