@@ -13,7 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, name?: string) => Promise<boolean>;
   register: (name: string, email: string, password: string, pin: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, name?: string): Promise<boolean> => {
     try {
       console.log('Login attempt:', { email, password });
       
@@ -53,7 +53,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('Password mismatch');
           return false;
         }
-        // User exists and password matches - load their saved data
+        // User exists and password matches - update name if provided
+        if (name && name.trim()) {
+          existingUser.name = name.trim();
+          const userIndex = existingUsers.findIndex((u: any) => u.id === existingUser.id);
+          existingUsers[userIndex] = existingUser;
+          localStorage.setItem('smartpulse_users', JSON.stringify(existingUsers));
+        }
         setUser(existingUser);
         localStorage.setItem('smartpulse_user', JSON.stringify(existingUser));
         return true;
