@@ -14,7 +14,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, name?: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string, pin: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, pin: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   loading: boolean;
   updateWalletBalance: (amount: number) => void;
@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string, pin: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string, pin: string): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log('Register attempt:', { name, email, pin });
       
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (emailExists) {
         console.log('Email already registered');
-        return false;
+        return { success: false, error: 'email_exists' };
       }
       
       const newUser: User = {
@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'user',
         walletBalance: 500,
         pin,
-        password // Store password for validation
+        password
       };
       
       // Store user in localStorage
@@ -140,10 +140,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setUser(newUser);
       localStorage.setItem('smartpulse_user', JSON.stringify(newUser));
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
-      return false;
+      return { success: false, error: 'unknown' };
     }
   };
 

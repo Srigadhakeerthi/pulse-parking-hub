@@ -53,17 +53,20 @@ const RegisterForm = () => {
     setLoading(true);
 
     try {
-      const success = await register(name, email, password, pin);
-      if (success) {
+      const result = await register(name, email, password, pin);
+      if (result.success) {
         toast({
           title: "Registration Successful",
           description: "Welcome to Smart Pulse! You can start booking parking slots now.",
         });
         navigate('/dashboard');
       } else {
+        const errorMessage = result.error === 'email_exists' 
+          ? "This email is already registered. Please sign in instead."
+          : "Unable to create account. Please try again.";
         toast({
           title: "Registration Failed",
-          description: "Unable to create account. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
