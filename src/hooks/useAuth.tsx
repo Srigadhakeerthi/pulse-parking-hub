@@ -8,6 +8,7 @@ interface User {
   role: 'user' | 'admin';
   walletBalance: number;
   pin?: string;
+  password?: string;
 }
 
 interface AuthContextType {
@@ -47,29 +48,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existingUser = existingUsers.find((u: any) => u.email === email);
       
       if (existingUser) {
-        // User exists - load their saved data
+        // Validate password
+        if (existingUser.password !== password) {
+          console.log('Password mismatch');
+          return false;
+        }
+        // User exists and password matches - load their saved data
         setUser(existingUser);
         localStorage.setItem('smartpulse_user', JSON.stringify(existingUser));
         return true;
       }
       
-      // Create new user only if not found (for admin or first-time mock users)
-      const newUser: User = {
-        id: Date.now().toString(),
-        name: email === 'admin@smartpulse.com' ? 'Admin User' : email.split('@')[0],
-        email,
-        role: email === 'admin@smartpulse.com' ? 'admin' : 'user',
-        walletBalance: 500,
-        pin: '1234'
-      };
+      // Demo accounts for testing
+      if (email === 'user@test.com' && password === 'password123') {
+        const demoUser: User = {
+          id: 'demo-user',
+          name: 'Demo User',
+          email,
+          role: 'user',
+          walletBalance: 500,
+          pin: '1234',
+          password: 'password123'
+        };
+        existingUsers.push(demoUser);
+        localStorage.setItem('smartpulse_users', JSON.stringify(existingUsers));
+        setUser(demoUser);
+        localStorage.setItem('smartpulse_user', JSON.stringify(demoUser));
+        return true;
+      }
       
-      // Save new user to users array
-      existingUsers.push(newUser);
-      localStorage.setItem('smartpulse_users', JSON.stringify(existingUsers));
+      if (email === 'admin@ParkEZE.com' && password === 'admin123') {
+        const adminUser: User = {
+          id: 'demo-admin',
+          name: 'Admin User',
+          email,
+          role: 'admin',
+          walletBalance: 1000,
+          pin: '1234',
+          password: 'admin123'
+        };
+        existingUsers.push(adminUser);
+        localStorage.setItem('smartpulse_users', JSON.stringify(existingUsers));
+        setUser(adminUser);
+        localStorage.setItem('smartpulse_user', JSON.stringify(adminUser));
+        return true;
+      }
       
-      setUser(newUser);
-      localStorage.setItem('smartpulse_user', JSON.stringify(newUser));
-      return true;
+      // User not found
+      return false;
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -78,22 +104,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (name: string, email: string, password: string, pin: string): Promise<boolean> => {
     try {
-      console.log('Register attempt:', { name, email, password, pin });
+      console.log('Register attempt:', { name, email, pin });
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if email already exists
+      const existingUsers = JSON.parse(localStorage.getItem('smartpulse_users') || '[]');
+      const emailExists = existingUsers.some((u: any) => u.email === email);
+      
+      if (emailExists) {
+        console.log('Email already registered');
+        return false;
+      }
       
       const newUser: User = {
         id: Date.now().toString(),
         name,
         email,
         role: 'user',
-        walletBalance: 500, // Initial wallet balance
-        pin
+        walletBalance: 500,
+        pin,
+        password // Store password for validation
       };
       
       // Store user in localStorage
-      const existingUsers = JSON.parse(localStorage.getItem('smartpulse_users') || '[]');
       existingUsers.push(newUser);
       localStorage.setItem('smartpulse_users', JSON.stringify(existingUsers));
       
